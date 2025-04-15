@@ -1,62 +1,42 @@
+import PIL.Image
 import cv2
-from ultralytics import YOLO
-import pyttsx3
-import threading
+from google import genai
 
-# Initialize YOLOv11 (pretrained on COCO)
-model = YOLO("yolo11n.pt")
-
-# Initialize TTS engine
-engine = pyttsx3.init( )
-engine.setProperty('rate', 150)  # Speech speed (words per minute)
-engine.setProperty('volume', 1.0)  # Volume (0.0 to 1.0)
-
-# Store detected objects to avoid duplicate announcements
-detected_objects = set( )
+client = genai.Client(api_key="AIzaSyC0FzAL0ObZxuiHvVeF4-xKZhuyGLgGBXo")
 
 
-def announce_objects():
+def Frame_Getter():
+    cam = cv2.VideoCapture(0)
 
-    global detected_objects
-    if detected_objects:
-        announcement = "Detected: " + ", ".join(detected_objects)
-        print(announcement)
-        engine.say(announcement)
-        engine.runAndWait( )
-        detected_objects.clear( )
+    while True:
+
+        ret, frame = cam.read( )
+        if not ret:
+            print("failed to grab frame")
+            break
+
+        cv2.imshow("Press Space To Capture", frame)
+
+        k = cv2.waitKey(1)
+        if k % 256 == 27:
+            # ESC
+            print("Escape hit, closing...")
+            break
+        elif k % 256 == 32:
+            # SPACE
+            cv2.imwrite("image.jpg", frame)
+            print("Image Captured Successfully")
+            break
+
+    cam.release( )
+
+    cv2.destroyAllWindows( )
 
 
-# Webcam setup
-cap = cv2.VideoCapture(0)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+Frame_Getter( )
+image = PIL.Image.open('image.jpg')
+response = client.models.generate_content(
+    model="gemini-2.0-flash",
+    contents=["give me discription of the image?", image])
 
-while True:
-    ret, frame = cap.read( )
-    if not ret:
-        break
-
-    # Run inference
-    results = model(frame, verbose=False)  # Disable logs
-
-    # Reset detected objects for this frame
-    detected_objects = set( )
-
-    # Process detections
-    for result in results:
-        for box in result.boxes:
-            if box.conf > 0.8:  # Confidence threshold
-                class_name = model.names[int(box.cls)]
-                detected_objects.add(class_name)
-
-    # Announce in a separate thread (non-blocking)
-    threading.Thread(target=announce_objects).start( )
-
-    # Display live detection
-    cv2.imshow("YOLOv11 Detection", results[0].plot( ))
-
-    if cv2.waitKey(1) == ord('q'):
-        break
-
-cap.release( )
-cv2.destroyAllWindows( )
+print(response.text)

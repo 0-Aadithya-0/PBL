@@ -1,5 +1,7 @@
 import PIL.Image
 import cv2
+from gtts import gTTS
+import playsound
 from google import genai
 
 client = genai.Client(api_key="AIzaSyC0FzAL0ObZxuiHvVeF4-xKZhuyGLgGBXo")
@@ -33,10 +35,13 @@ def Frame_Getter():
     cv2.destroyAllWindows( )
 
 
-Frame_Getter( )
-image = PIL.Image.open('image.jpg')
-response = client.models.generate_content(
-    model="gemini-2.0-flash",
-    contents=["give me discription of the image?", image])
+if __name__ == "__main__":
+    Frame_Getter()
+    image = PIL.Image.open('image.jpg')
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=["give me discription of the image?", image])
 
-print(response.text)
+    tts = gTTS(text=response.text,lang='en')
+    tts.save("hello.mp3")
+    playsound.playsound("hello.mp3")

@@ -13,6 +13,7 @@ def Frame_Getter():
     while True:
 
         ret, frame = cam.read( )
+        frame = cv2.flip(frame, 1)
         if not ret:
             print("failed to grab frame")
             break
@@ -26,6 +27,7 @@ def Frame_Getter():
             break
         elif k % 256 == 32:
             # SPACE
+
             cv2.imwrite("image.jpg", frame)
             print("Image Captured Successfully")
             break
@@ -36,12 +38,13 @@ def Frame_Getter():
 
 
 if __name__ == "__main__":
-    Frame_Getter()
+    Frame_Getter( )
     image = PIL.Image.open('image.jpg')
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=["give me discription of the image?", image])
+        model="gemini-1.5-flash",
+        contents=["give a discription of the what you see , You are a person trying to discribe you vision to a blind person(do not add any intial dialogs like : here is what I see , okay imagine this, The image shows)", image])
 
-    tts = gTTS(text=response.text,lang='en')
-    tts.save("hello.mp3")
-    playsound.playsound("hello.mp3")
+    print(response.text)
+    tts = gTTS(text=response.text, lang='en')
+    tts.save("image.mp3")
+    playsound.playsound("image.mp3")
